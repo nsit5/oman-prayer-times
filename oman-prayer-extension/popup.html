@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مواقيت الصلاة</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { width:300px; font-family:Tahoma,Arial,sans-serif; direction:rtl; background:#f5f6f8; font-size:13px; color:#222; }
+
+.header { background:#0d3b26; color:#fff; padding:12px 14px; display:flex; align-items:center; gap:10px; }
+.hicon  { width:34px; height:34px; background:rgba(255,255,255,0.15); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+.htitle { font-size:14px; font-weight:bold; }
+.hsub   { font-size:11px; opacity:0.75; margin-top:1px; }
+
+.tabs  { display:flex; background:#fff; border-bottom:1px solid #e0e0e0; }
+.tab   { flex:1; padding:9px 4px; text-align:center; font-size:12px; cursor:pointer; color:#777; border-bottom:2px solid transparent; }
+.tab.active { color:#1D9E75; border-bottom-color:#1D9E75; font-weight:bold; }
+
+.panel { display:none; padding:10px; }
+.panel.active { display:block; }
+
+/* صلاة قادمة */
+.next-card { background:#fff; border-radius:10px; border:1px solid #e8f5e9; padding:12px; margin-bottom:10px; }
+.next-lbl  { font-size:11px; color:#888; margin-bottom:5px; }
+.next-row  { display:flex; justify-content:space-between; align-items:center; }
+.next-name { font-size:20px; font-weight:bold; color:#0d3b26; }
+.next-time { font-size:11px; color:#555; margin-top:2px; }
+.cdown-big { font-size:24px; font-weight:bold; color:#1D9E75; font-variant-numeric:tabular-nums; letter-spacing:1px; }
+.cdown-sub { font-size:10px; color:#888; text-align:center; }
+.iqama-row { margin-top:8px; font-size:11px; color:#b36a00; background:#fff8e1; padding:5px 8px; border-radius:6px; }
+.fallback-note { font-size:10px; color:#e67e22; background:#fef9f0; padding:4px 8px; border-radius:6px; margin-top:6px; display:none; }
+
+/* قائمة الصلوات */
+.pcard { background:#fff; border-radius:10px; border:1px solid #eee; overflow:hidden; }
+.phead { background:#0d3b26; color:#fff; padding:7px 12px; font-size:11px; display:flex; justify-content:space-between; }
+.prow  { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f2f2f2; }
+.prow:last-child { border-bottom:none; }
+.prow.done { opacity:0.4; }
+.prow.nxt  { background:#e8f5e9; }
+.pname { font-weight:bold; font-size:13px; display:flex; align-items:center; gap:5px; }
+.badge { font-size:10px; padding:1px 6px; border-radius:10px; font-weight:normal; }
+.b-next { background:#c8e6c9; color:#1b5e20; }
+.b-done { background:#eee; color:#666; }
+.ptimes { text-align:left; }
+.padhan { font-size:13px; font-weight:500; }
+.piqama { font-size:11px; color:#b36a00; margin-top:1px; }
+
+/* إعدادات */
+.sec { background:#fff; border-radius:10px; border:1px solid #eee; margin-bottom:9px; overflow:hidden; }
+.sec-title { background:#f8f8f8; padding:7px 12px; font-size:11px; color:#888; font-weight:bold; border-bottom:1px solid #eee; letter-spacing:.4px; }
+.srow { display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-bottom:1px solid #f5f5f5; }
+.srow:last-child { border-bottom:none; }
+.slabel { font-size:13px; }
+.ssub   { font-size:11px; color:#888; margin-top:1px; }
+
+select { width:100%; padding:7px 9px; border:1px solid #ddd; border-radius:8px; font-family:Tahoma; font-size:13px; background:#fff; color:#222; direction:rtl; cursor:pointer; }
+
+.tog { width:40px; height:22px; border-radius:11px; background:#ccc; position:relative; cursor:pointer; flex-shrink:0; transition:background .2s; }
+.tog.on { background:#1D9E75; }
+.tog::after { content:''; position:absolute; width:16px; height:16px; background:#fff; border-radius:50%; top:3px; right:3px; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.tog.on::after { right:unset; left:3px; }
+
+.theme-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; padding:10px; }
+.tbtn { border:2px solid transparent; border-radius:9px; padding:8px 4px; cursor:pointer; text-align:center; font-size:11px; font-family:Tahoma; transition:border-color .15s; }
+.tbtn.sel { border-color:#1D9E75; }
+.ticon { font-size:20px; margin-bottom:3px; }
+.t-dark    { background:#1a1a2e; color:#00e5ff; }
+.t-light   { background:#f0f8ff; color:#1d4f82; border:1px solid #ccc; }
+.t-classic { background:#0d3b26; color:#c8e6c9; }
+.t-green   { background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; }
+.t-purple  { background:#1a0533; color:#ce93d8; }
+.t-gold    { background:#1c1500; color:#ffd54f; }
+
+/* إقامة */
+.offrow { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f5f5f5; }
+.offrow:last-child { border-bottom:none; }
+.offlbl { font-size:13px; }
+.offctrl { display:flex; align-items:center; gap:7px; }
+.offbtn { width:26px; height:26px; border-radius:50%; border:1px solid #ddd; background:#f5f5f5; cursor:pointer; font-size:16px; line-height:24px; text-align:center; color:#333; }
+.offbtn:hover { background:#e0e0e0; }
+.offval { font-size:14px; font-weight:bold; min-width:28px; text-align:center; color:#0d3b26; }
+
+.refresh-btn { width:100%; padding:9px; background:#1D9E75; color:#fff; border:none; border-radius:8px; font-family:Tahoma; font-size:13px; cursor:pointer; margin-top:8px; }
+.refresh-btn:hover { background:#0F6E56; }
+.refresh-btn:disabled { background:#aaa; cursor:default; }
+
+.statusbar { background:#fff; border-top:1px solid #eee; padding:5px 12px; font-size:10px; color:#aaa; display:flex; justify-content:space-between; }
+.dot { width:6px; height:6px; border-radius:50%; background:#1D9E75; display:inline-block; margin-left:4px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hicon"><img src="icons/icon16.png" width="30" height="30" ></div>
+  <div>
+    <div class="htitle">مواقيت الصلاة — عُمان</div>
+    <div class="hsub" id="hcity">جاري التحميل...</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="prayers">🕐 الصلوات</div>
+  <div class="tab" data-tab="settings">⚙️ الإعدادات</div>
+  <div class="tab" data-tab="offsets">⏱ الإقامة</div>
+</div>
+
+<!-- صلوات -->
+<div id="panel-prayers" class="panel active">
+  <div class="next-card">
+    <div class="next-lbl">الصلاة القادمة</div>
+    <div class="next-row">
+      <div>
+        <div class="next-name" id="nname">—</div>
+        <div class="next-time" id="ntime">—</div>
+      </div>
+      <div>
+        <div class="cdown-big" id="cdown">--:--:--</div>
+        <div class="cdown-sub">الوقت المتبقي</div>
+      </div>
+    </div>
+    <div class="iqama-row" id="iqrow">جاري...</div>
+    <div class="fallback-note" id="fallnote">⚠️ بيانات تقريبية (تعذّر الاتصال بموقع الوزارة)</div>
+  </div>
+  <div class="pcard">
+    <div class="phead"><span id="pdate">—</span><span id="hijri" style="opacity:.75;font-size:10px;"></span></div>
+    <div id="plist"><div class="prow"><div class="pname" style="color:#888">جاري التحميل...</div></div></div>
+  </div>
+</div>
+
+<!-- إعدادات -->
+<div id="panel-settings" class="panel">
+  <div class="sec">
+    <div class="sec-title">الولاية</div>
+    <div style="padding:10px 12px;"><select id="csel"></select></div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">مظاهر النافذة العائمة</div>
+    <div class="theme-grid">
+      <button class="tbtn t-dark sel"    data-theme="dark"   ><div class="ticon">🌙</div>داكن</button>
+      <button class="tbtn t-light"       data-theme="light"  ><div class="ticon">☀️</div>فاتح</button>
+      <button class="tbtn t-classic"     data-theme="classic"><div class="ticon">🕌</div>كلاسيكي</button>
+      <button class="tbtn t-green"       data-theme="green"  ><div class="ticon">🌿</div>أخضر</button>
+      <button class="tbtn t-purple"      data-theme="purple" ><div class="ticon">🔮</div>بنفسجي</button>
+      <button class="tbtn t-gold"        data-theme="gold"   ><div class="ticon">✨</div>ذهبي</button>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">الإشعارات والخيارات</div>
+    <div class="srow"><div><div class="slabel">إشعارات الأذان</div><div class="ssub">تنبيه عند دخول كل وقت صلاة</div></div><div class="tog on" id="tog-adhan"></div></div>
+    <div class="srow"><div><div class="slabel">إشعارات الإقامة</div><div class="ssub">تنبيه عند إقامة الصلاة</div></div><div class="tog on" id="tog-iqama"></div></div>
+    <div class="srow">
+      <div>
+        <div class="slabel">🔡 حجم الخط</div>
+        <div class="ssub">خط المواقيت في النافذة العائمة</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:#888;" id="fs-val">13</span>
+        <input type="range" id="font-size-range" min="10" max="20" value="13"
+          style="width:80px;accent-color:#1D9E75;">
+      </div>
+    </div>
+    <div class="srow"><div><div class="slabel">🔔 صوت الأذان</div><div class="ssub">يُشغّل أذان قصير</div></div><div class="tog" id="tog-sound"></div></div>
+    <div class="srow"><div><div class="slabel">عرض الصلاة القادمة فقط</div><div class="ssub">يخفي المنتهية في الويدجت</div></div><div class="tog on" id="tog-nextonly"></div></div>
+  </div>
+  <button class="refresh-btn" id="refbtn">🔄 تحديث المواقيت الآن</button>
+</div>
+
+<!-- إقامة -->
+<div id="panel-offsets" class="panel">
+  <div class="sec">
+    <div class="sec-title">دقائق الانتظار بعد الأذان</div>
+    <div class="offrow"><span class="offlbl">🌅 الفجر</span><div class="offctrl"><button class="offbtn" data-k="fajr" data-d="-1">−</button><span class="offval" id="ov-fajr">25</span><button class="offbtn" data-k="fajr" data-d="1">+</button></div></div>
+    <div class="offrow"><span class="offlbl">☀️ الظهر</span><div class="offctrl"><button class="offbtn" data-k="dhuhr" data-d="-1">−</button><span class="offval" id="ov-dhuhr">20</span><button class="offbtn" data-k="dhuhr" data-d="1">+</button></div></div>
+    <div class="offrow"><span class="offlbl">🌤 العصر</span><div class="offctrl"><button class="offbtn" data-k="asr" data-d="-1">−</button><span class="offval" id="ov-asr">20</span><button class="offbtn" data-k="asr" data-d="1">+</button></div></div>
+    <div class="offrow"><span class="offlbl">🌆 المغرب</span><div class="offctrl"><button class="offbtn" data-k="maghrib" data-d="-1">−</button><span class="offval" id="ov-maghrib">10</span><button class="offbtn" data-k="maghrib" data-d="1">+</button></div></div>
+    <div class="offrow"><span class="offlbl">🌙 العشاء</span><div class="offctrl"><button class="offbtn" data-k="isha" data-d="-1">−</button><span class="offval" id="ov-isha">20</span><button class="offbtn" data-k="isha" data-d="1">+</button></div></div>
+  </div>
+</div>
+
+<div class="statusbar">
+  <span><span class="dot"></span>نشط في الخلفية</span>
+  <span id="lupdate">—</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
